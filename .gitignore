@@ -1,0 +1,14 @@
+.idea
+/channel-artifacts/*.tx
+/channel-artifacts/*.block
+/ledgers
+/ledgers-backup
+/channel-artifacts/*.json
+organizations/fabric-ca/*
+!organizations/fabric-ca/registerEnroll.sh
+organizations/ordererOrganizations/
+organizations/peerOrganizations/
+system-genesis-block/*
+*.tar.gz
+log.txt
+/asset-transfer/product-chaincode/vendor/

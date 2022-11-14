@@ -12,3 +12,4 @@ system-genesis-block/*
 *.tar.gz
 log.txt
 /asset-transfer/product-chaincode/vendor/
+qr-codes/*

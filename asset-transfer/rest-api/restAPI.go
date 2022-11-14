@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -14,9 +13,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
+	"github.com/skip2/go-qrcode"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
+
+type Product struct {
+	ProductID        string `json:"ProductID"`
+	ProductType      string `json:"ProductType"`
+	Owner            Owner  `json:"Owner"`
+	WithManufacturer bool   `json:"WithManufacturer"`
+	WithRetailer     bool   `json:"WithRetailer"`
+	WithConsumer     bool   `json:"WithConsumer"`
+}
+
+type Owner struct {
+	OwnerName    string `json:"OwnerName"`
+	OwnerAddress string `json:"OwnerAddress"`
+}
 
 const (
 	mspID         = "CustomerMSP"
@@ -56,6 +70,7 @@ func main() {
 
 	network := gw.GetNetwork(channelName)
 	contract := network.GetContract(chaincodeName)
+	createQRCodes(os.Args[1], contract)
 
 	router := gin.Default()
 	router.GET("/products/:id", func(context *gin.Context) {
@@ -144,22 +159,48 @@ func newSign() identity.Sign {
 }
 
 // Evaluate a transaction by assetID to query ledger state.
-func readAssetByID(contract *client.Contract, id string) (string, error) {
+func readAssetByID(contract *client.Contract, id string) (Product, error) {
 	fmt.Printf("Evaluate Transaction: ReadAsset, function returns asset attributes\n")
 
 	evaluateResult, err := contract.EvaluateTransaction("ReadAsset", id)
+	var product Product
 	if err != nil {
-		return "", err
+		return product, err
 	}
-	result := formatJSON(evaluateResult)
-	return result, nil
+	err = json.Unmarshal(evaluateResult, &product)
+	if err != nil {
+		return product, err
+	}
+	return product, nil
 }
 
-// Format JSON data
-func formatJSON(data []byte) string {
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, data, " ", ""); err != nil {
-		panic(fmt.Errorf("failed to parse JSON: %w", err))
+// Evaluate a transaction to query ledger state.
+func getAllAssets(contract *client.Contract) ([]Product, error) {
+	fmt.Println("Evaluate Transaction: GetAllAssets, function returns all the current assets on the ledger")
+
+	evaluateResult, err := contract.EvaluateTransaction("GetAllAssets")
+	var products []Product
+	if err != nil {
+		return products, nil
 	}
-	return prettyJSON.String()
+	err = json.Unmarshal(evaluateResult, &products)
+	if err != nil {
+		return products, err
+	}
+	return products, nil
+}
+
+func createQRCodes(url string, contract *client.Contract) {
+	products, err := getAllAssets(contract)
+	if err != nil {
+		panic(err)
+	}
+	for index, product := range products {
+		// create a file wit relative path
+		file, err := os.Create(fmt.Sprintf("../../qr-codes/qr-%d.png", index))
+		err = qrcode.WriteFile(url+"/products/"+product.ProductID, qrcode.Highest, 256, file.Name())
+		if err != nil {
+			panic(err)
+		}
+	}
 }

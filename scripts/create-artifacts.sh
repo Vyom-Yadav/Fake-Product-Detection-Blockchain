@@ -22,6 +22,11 @@ configtxgen -profile OrdererGenesis -configPath $CONFIG_PATH -channelID $SYS_CHA
 # Generate channel configuration block
 configtxgen -profile BasicChannel -configPath $CONFIG_PATH -outputCreateChannelTx ../channel-artifacts/${CHANNEL_NAME}.tx -channelID $CHANNEL_NAME
 
+# When you create a channel using the channel.tx, there is not anchor peer defined for default.
+# For this reason, you need to set it. At the first time you update anchor peer transaction will set
+# the address and MSP of your anchor peer. So continuing the BYFN tutorial, you need to tell the network
+# that you have set a new anchor peer creating a config channel update transaction:
+
 echo "#######    Generating anchor peer update for ManufacturerMSP  ##########"
 configtxgen -profile BasicChannel -configPath $CONFIG_PATH -outputAnchorPeersUpdate ../channel-artifacts/ManufacturerMSPanchors.tx -channelID $CHANNEL_NAME -asOrg ManufacturerMSP
 
